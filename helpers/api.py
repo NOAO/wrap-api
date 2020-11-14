@@ -1,3 +1,5 @@
+import requests
+
 # TODO:
 #   API should return seperate versions for SIA and ADS.
 #   Validate response from requests.  PPrint error if not success.
@@ -28,40 +30,45 @@ class AdaApi():
     
     def get_categoricals(self):
         if self.categoricals is None:
-            res = requests.get(f'{self.adsurl}/cat_lists​/')
+            url = f'{self.adsurl}/cat_lists/'
+            res = requests.get(url)
             self.categoricals = res.json()  # dict(catname) = [val1, val2, ...]
         return(self.categoricals)
 
-    def get_aux_fields(instrument, proctype):
+    def get_aux_fields(self, instrument, proctype):
         # @@@ VALIDATE instrument, proctype, type
-        res = requests.get(f'{adsurl}/aux_{self.type}_fields/{instrument}​/{proctype}​/')
+        url = f'{self.adsurl}/aux_{self.type}_fields/{instrument}/{proctype}/'
+        res = requests.get(url)
+        print(f"url={url}; res={res}; content={res.content}")
         return(res.json())
 
-    def get_core_fields(instrument, proctype, type='file'):
+    def get_core_fields(self):
         # @@@ VALIDATE instrument, proctype, type
-        res = requests.get(f'{adsurl}/core_{self.type}_fields/')
+        res = requests.get(f'{self.adsurl}/core_{self.type}_fields/')
         return(res.json())
 
     def search(self, jspec):
         t = 'h' if self.type=='hdu' else 'f'
-        res = requests.post(f'{adsurl}/{t}asearch/', json=jspec)
+        res = requests.post(f'{self.adsurl}/{t}asearch/', json=jspec)
         return(res.json())
 
     def vosearch(self, ra, dec, size, limit=False):
         t = 'hdu' if self.type=='hdu' else 'img'
         if not limit:
             limit = self.default_limit 
-        res = requests.post(f'{siaurl}/vo{t}?POS={ra},{dec}&SIZE={size}&limit={limit}')
+        res = requests.post(f'{self.siaurl}/vo{t}?POS={ra},{dec}&SIZE={size}&limit={limit}')
         return(res.json())        
 
         
 class FitsFile(AdaApi):
-    def __init__(self):
+    def __init__(self, url='https://astroarchive.noao.edu'):
+        AdaApi.__init__(self, url=url)
         self.type = 'file'
         
 
 class FitsHdu(AdaApi):
-    def __init__(self):
+    def __init__(self, url='https://astroarchive.noao.edu'):
+        super().__init__(self, url=url)
         self.type = 'hdu'
 
 
@@ -140,33 +147,31 @@ class FitsHdu(AdaApi):
 #! ​    url="/api​/fields​/"
 #!     pass
 
-# POST
-def get_token​():
-    """Request an authorization token."""
-​    url="/api​/get_token​/"
-    pass
+#@@@ # POST
+#@@@ def get_token​():
+#@@@     """Request an authorization token."""
+#@@@     url="/api​/get_token​/"
 
-# GET
-def header​(md5):  # @@@  HTML
-    """Return full FITS headers as HTML."""
-​    url="/api​/header​/{md5}​/"
-    pass
-
-# GET
-def object_lookup​():
-    """Retrieve the RA,DEC coordinates for a given object by name."""
-​    url="/api​/object-lookup​/"
-    pass
-
-# GET
-def retrieve​(md5):
-    """Download one FITS file from the Archive."""
-​    url="/api​/retrieve​/{md5}​/"
-    pass
-
-
+#@@@ # GET
+#@@@ def header​(md5):  # @@@  HTML
+#@@@     """Return full FITS headers as HTML."""
+#@@@     url="/api​/header​/{md5}​/"
+#@@@     pass
+#@@@ 
+#@@@ # GET
+#@@@ def object_lookup​():
+#@@@     """Retrieve the RA,DEC coordinates for a given object by name."""
+#@@@     url="/api​/object-lookup​/"
+#@@@     pass
+#@@@ 
+#@@@ # GET
+#@@@ def retrieve​(md5):
+#@@@     """Download one FITS file from the Archive."""
+#@@@     url="/api​/retrieve​/{md5}​/"
+#@@@     pass
+#@@@ 
 #!# GET
 #!def version​():
 #!    """Get version of this API library."""
-#!​    url="/api​/version​/"
+#!    url="/api​/version​/"
 #!    pass
