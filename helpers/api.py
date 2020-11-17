@@ -8,7 +8,7 @@ from enum import Enum,auto
 #   Validate response from requests.  PPrint error if not success.
 #   Generalize: error handling
 #   Always JSON output (or pandas dataframe? or VOTABLE?)
-#   ENUM for File, Hdu
+#   ENUM for format
 #   ads search, HEADER in response should give full URL for 'endpoint'
 #   Authentication.
 #   VERBOSE mode (for debugging)
@@ -59,12 +59,18 @@ class AdaApi():
         res = requests.post(url, json=jspec)
         return(res.json())
 
-    def vosearch(self, ra, dec, size, limit=100):
+    def vosearch(self, ra, dec, size, limit=100, format='json'):
         t = 'hdu' if self.type == Rec.Hdu else 'img'
-        qstr = urlencode(dict(POS=f'{ra},{dec}',SIZE=size))
-        url = f'{self.siaurl}/vo{t}?'
+        qstr = urlencode(dict(POS=f'{ra},{dec}',
+                              SIZE=size,
+                              limit=None if limit is None else (limit or self.limit),
+                              format=format))
+        url = f'{self.siaurl}/vo{t}?{qstr}'
+        if self.verbose:
+            print(f'Search invoking "{url}" with: ra={ra}, dec={dec}, size={size}')
         res = requests.get(url)
-        return(res.content.decode("utf-8"))
+        #return(res.content.decode("utf-8"))
+        return(res.json())
 
     def check_version(self):
         """Insure this library in consistent with the API version."""

@@ -1,3 +1,6 @@
+# EXAMPLE:
+#   python -m pytest
+
 import helpers.api
 from pprint import pformat
 
@@ -29,4 +32,9 @@ print(f'Result={pformat(res)}')
 def test_search():
     res = fapi.search({"outfields": ["archive_filename"], "search":[]}, limit=5)
     assert len(res) == 6
+    
+def test_vosearch():
+    res = fapi.vosearch(13,-34,1,limit=5, format='json')
+    assert len(res) == 6
+
     
