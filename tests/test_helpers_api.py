@@ -1,40 +1,48 @@
 # EXAMPLE:
+#   cd ~/sandbox/wrap_api
 #   python -m pytest
 
-import helpers.api
+# Python Standard Library
 from pprint import pformat
+from pathlib import Path, PosixPath
+# Local Packages
+import helpers.api
+# External Packages
+import pytest
 
-fapi = helpers.api.FitsFile(url='http://marsnat1.pat.dm.noao.edu:8000/',
-                            verbose=True)
 
-res = fapi.search({"outfields": ["archive_filename"], "search":[]}, limit=5)
-# Search invoking "http://marsnat1.pat.dm.noao.edu:8000/api/adv_search/fasearch/?limit=5&format=json" with: {'outfields': ['archive_filename'], 'search': []}
+#rooturl = 'https://astroarchive.noao.edu/' #@@@
+rooturl = 'http://marsnat1.pat.dm.noao.edu:8000/' #@@@
 
-print(f'Result={pformat(res)}')
+fapi = helpers.api.FitsFile(rooturl, verbose=False, limit=5)
 
-# Result=[{'HEADER': {'archive_filename': 'string'},
-#   'META': {'endpoint': 'adv_search/fasearch'},
-#   'PARAMETERS': {'format': 'json',
-#                  'json_payload': {'outfields': ['archive_filename'],
-#                                   'search': []},
-#                  'last': 5,
-#                  'limit': 5,
-#                  'offset': 0,
-#                  'oldest': None,
-#                  'previd': None},
-#   'RESULTS': {'COUNT': 5, 'MORE': True}},
-#  {'archive_filename': '/net/archive/mtn/20181129/ct4m/2012B-0001/c4d_181130_010546_ori.fits.fz'},
-#  {'archive_filename': '/net/archive/mtn/20170307/kp4m/2016A-0453/k4m_170308_045842_ori.fits.fz'},
-#  {'archive_filename': '/net/archive/mtn/20181205/ct4m/2012B-0001/c4d_181205_224438_zri.fits.fz'},
-#  {'archive_filename': '/net/archive/mtn/20150413/bok23m/2015A-0801/ksb_150414_104425_ori.fits.fz'},
-#  {'archive_filename': '/net/archive/mtn/20180328/ct4m/2018A-0159/c4d_180329_035427_ori.fits.fz'}]
-
+def test_fapi():
+    assert fapi.limit == 5
+    pass
+    
 def test_search():
-    res = fapi.search({"outfields": ["archive_filename"], "search":[]}, limit=5)
-    assert len(res) == 6
+    info,rows = fapi.search({"outfields": ["archive_filename"], "search":[]})
+    assert len(rows) == 5
+
+@pytest.mark.skip(reason="CSV and XML return itertools.chain in response")    
+def test_search_csv():
+    info,rows = fapi.search({"outfields": ["md5sum","caldat"], "search":[]},
+                           format='csv')
+    assert len(rows) == 5
     
 def test_vosearch():
-    res = fapi.vosearch(13,-34,1,limit=5, format='json')
-    assert len(res) == 6
+    info,rows = fapi.vosearch(13, -34, 1, format='json')
+    assert not info['RESULTS']['MORE']
+    assert len(rows) == 3
 
     
+def test_retrieve_proprietary():
+    proprietaryFileId = 'a96e55509a4cf89ebcc3126bef2e6aa7' # from S&F
+    fits = fapi.retrieve(proprietaryFileId)
+
+def test_retrieve_public():
+    publicFileId = '0000298c7e0b3ce96b3fff51515a6100'
+    local_file_path = Path(PosixPath('~/Downloads/noirlab').expanduser(),
+                           f'fits{publicFileId}')
+    with open(local_file_path,'wb') as fits:
+        fits.write(fapi.retrieve(publicFileId))

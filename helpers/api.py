@@ -1,10 +1,13 @@
-import requests
+# Python Standard Library
 from urllib.parse import urlencode
 from enum import Enum,auto
+from pprint import pformat as pf
+# External Packages
+import requests
 
 
 # TODO:
-#   API should return seperate versions for SIA and ADS.
+#   API should return seperate VERSION for SIA and ADS.
 #   Validate response from requests.  PPrint error if not success.
 #   Generalize: error handling
 #   Always JSON output (or pandas dataframe? or VOTABLE?)
@@ -12,7 +15,12 @@ from enum import Enum,auto
 #   ads search, HEADER in response should give full URL for 'endpoint'
 #   Authentication.
 #   VERBOSE mode (for debugging)
-# 
+#   Cache categoricals, validate against them, output possibles on error.
+#   Split RESPONSE into: header + rows
+#   Use Keyword arguments almost everywhere
+#   Implement timeout:
+#      https://requests.readthedocs.io/en/master/user/advanced/#timeout
+#   Use Session in AdaApi class
 #   Cache calls to relatively static content:
 #      cat_lists, version, *_*_fields, *adoc,
 #
@@ -20,6 +28,18 @@ from enum import Enum,auto
 class Rec(Enum):
     File = auto()
     Hdu = auto()
+
+class AdsFormat(Enum):
+    Csv = auto()
+    Json = auto()
+    Xml = auto()
+
+class SiaFormat(Enum):    
+    Csv = auto()
+    Json = auto()
+    Xml = auto()
+    Votable = auto() # XML
+    
 
 class AdaApi():
     """Astro Data Archive"""
@@ -32,6 +52,7 @@ class AdaApi():
         self.adsurl = f'{url}/api/adv_search'
         self.siaurl = f'{url}/api/sia'
         self.categoricals = None
+        self.token = None
         self.version = None
         self.verbose = verbose
         if username is not None:
@@ -57,7 +78,23 @@ class AdaApi():
         if self.verbose:
             print(f'Search invoking "{url}" with: {jspec}')
         res = requests.post(url, json=jspec)
-        return(res.json())
+        if self.verbose:
+            print(f'Search status={res.status_code} res={res.content}')
+
+        if res.status_code != 200:
+            raise Exception(res)
+
+        if format == 'csv':
+            return(res.content)
+        elif format == 'xml':
+            return(res.content)
+        else: #'json'
+            result = res.json()
+            info = result.pop(0)
+            rows = result
+            if self.verbose:
+                print(f'info={pf(info)} rows={pf(rows)}')
+            return(info, rows)
 
     def vosearch(self, ra, dec, size, limit=100, format='json'):
         t = 'hdu' if self.type == Rec.Hdu else 'img'
@@ -69,8 +106,20 @@ class AdaApi():
         if self.verbose:
             print(f'Search invoking "{url}" with: ra={ra}, dec={dec}, size={size}')
         res = requests.get(url)
-        #return(res.content.decode("utf-8"))
-        return(res.json())
+        if self.verbose:
+            print(f'Search status={res.status_code} res={res.content}')
+
+        if res.status_code != 200:
+            raise Exception(f'status={res.status_code} content={res.content}')
+
+        if format == 'json':
+            result = res.json()
+            info = result.pop(0)
+            rows = result
+            return(info, rows)
+        else:
+            return(res.content)
+
 
     def check_version(self):
         """Insure this library in consistent with the API version."""
@@ -105,20 +154,24 @@ class FitsFile(AdaApi):
                  verbose=False,
                  limit=10,
                  username=None,  password=None):
-        super().__init__(url=url.rstrip('/'), verbose=verbose,
+        super().__init__(url=url.rstrip("/"), verbose=verbose,
                          username=username, password=password)
         self.type = Rec.File
         self.limit = limit
 
     def retrieve(self, fileid, hdu=None):
         # VALIDATE params @@@
+        
+        ## 401 Unauthorized: File is proprietary and logged in user is not authorized.
+        ## 403 Forbidden: File is proprietary and user is not logged in.
+        ## 404 Not Found: File-ID does not exist in Archive.
         qparams = '' if hdu is None else f'/?hdu={hdu}'
         url = f'{self.apiurl}/retrieve/{fileid}/{qparams}'
         if self.token is None:
             res = requests.get(url)
         else:
             res = requests.get(url, headers=dict(Authorization=self.token))
-        return res
+        return res.content
 
 class FitsHdu(AdaApi):
     def __init__(self, 
@@ -131,8 +184,7 @@ class FitsHdu(AdaApi):
         self.type = Rec.Hdu
         self.limit = limit
 
-##############################################################################        
-
+##############################################################################
 
 #@@@ # POST
 #@@@ def get_token​():
