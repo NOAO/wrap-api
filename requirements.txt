@@ -1,2 +1,5 @@
 requests==2.25.0
+pandas=1.1.4
+matplotlib=3.3.3
 pytest==6.1.2
+healpy=1.14.0  # for exposure_map.py
