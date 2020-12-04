@@ -1,8 +1,14 @@
-# EXAMPLE:
+# EXAMPLES:
 #   cd ~/sandbox/wrap_api
+#   python -m pytest -rA -m "not slow"    # Do this often!
+#
 #   python -m pytest
+#   python -m pytest -rA   # with individual pass/fail/skip reported
 #   python -m pytest tests/test_helpers_contrib.py
 #   python -m pytest tests/test_helpers_contrib.py::test_night_files
+#
+# With captured output of passed tests
+#   python -m pytest -rP tests/test_helpers_contrib.py::test_exposure_map
 
 # Python Standard Library
 from pprint import pformat
@@ -23,6 +29,7 @@ def test_night_files():
     fl = get_night_list('ct4m', 'decam', '2017-08-15', ['md5sum'], fapi)
     assert len(fl) == 370
 
+@pytest.mark.slow
 def test_download_decam_expnum(verbose=False):
     from helpers.contrib.download_decam_expnum import get_files
 
@@ -39,9 +46,8 @@ def test_exposure_map():
     import helpers.contrib.exposure_map as em
     warnings.filterwarnings('ignore') # suppress ALL warnings (dangerous)
     
-    res = fapi.vosearch(13,-34,1,limit=5, format='json')
-    print(f'test_exposure_map: len(res)={len(res)}')
-    hapi = helpers.api.FitsHdu(rooturl, verbose=False, limit=5)
+    hapi = helpers.api.FitsHdu(rooturl)
     map = em.gen_exposure_map(fapi, hapi)
+    #print(f'test_exposure_map: count_nonzero(map)={np.count_nonzero(map)}')
     assert np.count_nonzero(map) >= 106052
 

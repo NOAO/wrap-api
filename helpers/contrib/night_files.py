@@ -28,7 +28,7 @@ def get_night_list(telescope, instrument, night, outfields, fapi):
                      ["caldat", night, night]
                  ])
     info,rows = fapi.search(jdata, limit=10000)
-    print(f'Search INFO={info}')
+    #!print(f'Search INFO={info}')
     return rows
 
 ##############################################################################
