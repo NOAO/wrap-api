@@ -10,6 +10,7 @@ from pprint import pprint as pp  # pretty print
 import pandas as pd
 import math
 import json
+import warnings
 # External packages
 import matplotlib.pyplot as plt
 import matplotlib
@@ -212,22 +213,38 @@ def main():
     parser = argparse.ArgumentParser(
         #version='1.0.0',
         description='Generate exposure map for a survey (from: Knut Olsen)',
-        epilog='EXAMPLE: \n\t"%(prog)s -v"'
+        epilog='EXAMPLE: "%(prog)s -v"'
         )
+    parser.add_argument('--save',
+                        help=('Name of file in which to save exposure map'
+                              ' (numpy array)'))
     parser.add_argument('--apiurl',  help='URL of Archive API service',
                         default='https://astroarchive.noao.edu/')
     parser.add_argument('-v', '--verbose', action='store_true',
-                        help=('Tell what is going on'))
+                        help=('Tell what is going on.'))
+    parser.add_argument('--no_plot', action='store_true',
+                        help=('Suppress display of plots.'))
 
     args = parser.parse_args()
 
     fapi =  helpers.api.FitsFile(args.apiurl)
     hapi =  helpers.api.FitsHdu(args.apiurl)
 
+    warnings.filterwarnings('ignore') # suppress ALL warnings (dangerous)
+
     if args.verbose:
         print(f'Using API server at {args.apiurl}')
+        
     map = gen_exposure_map(fapi,hapi, verbose=args.verbose)
-    plt.show()
+    
+    if args.verbose:
+        print(f'Non-zeros: {np.count_nonzero(map):,} of {np.size(map):,}')
+    if args.save:
+        np.save(args.save, map)
+        print(f'Wrote exposure map (numpy array) to {args.save}')
+
+    if not args.no_plot:
+        plt.show()
 
 if __name__ == '__main__':
     main()

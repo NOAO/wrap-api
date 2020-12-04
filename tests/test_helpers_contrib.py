@@ -6,10 +6,12 @@
 
 # Python Standard Library
 from pprint import pformat
-# Local Packages
-import helpers.api
+import warnings
 # External Packages
 import pytest
+import numpy as np
+# Local Packages
+import helpers.api
 
 #rooturl = 'https://astroarchive.noao.edu/' #@@@
 rooturl = 'http://marsnat1.pat.dm.noao.edu:8000/' #@@@
@@ -32,13 +34,14 @@ def test_download_decam_expnum(verbose=False):
     files = get_files(nums, "~/Downloads/noirlab", fapi, verbose=verbose)
     assert len(files) == len(nums)
     
-@pytest.mark.skip(reason="UNDER CONSTRUCTION")    
+#@pytest.mark.skip(reason="UNDER CONSTRUCTION")    
 def test_exposure_map():
-    from helpers.contrib.exposure_map import gen_exposure_map    
-
+    import helpers.contrib.exposure_map as em
+    warnings.filterwarnings('ignore') # suppress ALL warnings (dangerous)
+    
     res = fapi.vosearch(13,-34,1,limit=5, format='json')
     print(f'test_exposure_map: len(res)={len(res)}')
     hapi = helpers.api.FitsHdu(rooturl, verbose=False, limit=5)
-    gen_exposure_map(fapi, hapi)
-    assert len(res) == 4
+    map = em.gen_exposure_map(fapi, hapi)
+    assert np.count_nonzero(map) >= 106052
 
